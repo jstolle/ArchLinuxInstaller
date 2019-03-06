@@ -17,46 +17,66 @@ fi
 printf "\n${NC}"
 
 # System Disk
-printf "\n${YELLOW}Disk to install to ? (Ex: /dev/nvme0n1): "
-read -p "" disk
+read -p "${YELLOW}Disk to install to ? (e.g.: /dev/nvme0n1): ${NC}" disk
 
-printf "\n${YELLOW}How much RAM ?       (Ex: 16 for 16G): "
-read -p "" ram
-totalSwapEnd=$((2*$ram+550))
+#printf "\n${YELLOW}How much RAM ?       (e.g.: 16 for 16G): "
+read -p "${YELLOW}How much RAM ?       (e.g.: 16 for 16G): ${NC}" ram
+#printf "\n${NC}"
+totalSwap=$((2*$ram))
+totalSwapEnd="${totalSwap}.5"
 
 parted "${disk}" --script \
 	mklabel gpt \
 	mkpart ESP fat32 1MiB 551MiB \
 	set 1 esp on \
 	mkpart primary linux-swap 551MiB "${totalSwap}GiB" \
-	mkpart primary ext4 "${totalSwap}GiB" 100%
+	mkpart primary ext4 "${totalSwapEnd}GiB" 100%
 
+# TODO - Provision more disks in friendly manner
+# TODO - Disk encryption option
+mkfs.fat "${disk}p1"
+mkswap "${disk}p2"
+mkfs.ext4 "${disk}p3"
 
-# echo "label: gpt" | sfdisk "${disk}"
-# echo 'start=2048, type=83' | sudo sfdisk "${disk}"
+swapon "${disk}p2"
 
+mount "${disk}p3" /mnt
+mkdir /mnt/boot
+mount "${disk}p1" /mnt/boot
 
+timedatectl set-ntp true
 
-# cfdisk "${disk}"
+# Update pacman mirrorlist
+# TODO - Troubleshoot?
+cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.backup
+pacman -S reflector --noconfirm
+reflector --verbose --latest 5 --sort rate --save /etc/pacman.d/mirrorlist
 
-# mkfs.fat "${disk}p1"
-# mkswap ${disk}.p2
-# mkfs.ext4 ${disk}.p3
+pacstrap /mnt base base-devel
+genfstab -U /mnt >> /mnt/etc/fstab
 
-# swapon ${disk}.p2
+# Put updated mirrorlist on new system
+cp /mnt/etc/pacman.d/mirrorlist /mnt/etc/pacman.d/mirrorlist.backup
+cp /etc/pacman.d/mirrorlist /mnt/etc/pacman.d/mirrorlist
 
-# mount ${disk}.p3 /mnt
-# mkdir /mnt/boot
-# mount ${disk}.p1 /mnt/boot
+# TODO - Copy network settings if necessary
 
-# timedatectl set-ntp true
+# Pull and run system setup script
+read -p "${YELLOW}Remote setup script? (e.g.: https://raw.githubusercontent.com/jstolle/ArchLinuxInstaller/master/system-setup.sh): ${NC}" rsetup
 
-# cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.backup
-# pacman -S reflector --noconfirm
-# reflector --verbose --latest 5 --sort rate --save /etc/pacman.d/mirrorlist
+if [[ -n "${rsetup}" ]]; then
+	curl -o /mnt/root/system-setup.sh "${rsetup}"
+	arch-chroot /mnt sh /root/system-setup.sh
+else
+	arch-chroot /mnt
+fi
 
-# pacstrap /mnt base base-devel
-# genfstab -U /mnt >> /mnt/etc/fstab
+read -p "${YELLOW}Ready to reboot? ${NC}" reboottime
 
-# curl -o /mnt/root/system-setup.sh https://raw.githubusercontent.com/nic0lae/ProtheusInstaller/master/system-setup.sh
-# arch-chroot /mnt sh /root/system-setup.sh
+case $reboottime in
+	yes|y|yeah|sure|yep|yup|youbetcha)  printf "\n${GREEN}Rebooting...."
+	                                    reboot
+																			;;
+	*)                                  printf "\n${YELLOW}Make any more updates required and manually reboot.${NC}"
+	                                    ;;
+esac
