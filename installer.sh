@@ -17,11 +17,13 @@ fi
 printf "\n${NC}"
 
 # System Disk
-read -p "${YELLOW}Disk to install to ? (e.g.: /dev/nvme0n1): ${NC}" disk
+printf "${YELLOW}"
+read -p "Disk to install to ? (e.g.: /dev/nvme0n1): " disk
+printf "${NC}"
 
-#printf "\n${YELLOW}How much RAM ?       (e.g.: 16 for 16G): "
-read -p "${YELLOW}How much RAM ?       (e.g.: 16 for 16G): ${NC}" ram
-#printf "\n${NC}"
+printf "${YELLOW}"
+read -p "How much RAM ?       (e.g.: 16 for 16G): " ram
+printf "${NC}"
 totalSwap=$((2*$ram))
 totalSwapEnd="${totalSwap}.5"
 
@@ -62,7 +64,9 @@ cp /etc/pacman.d/mirrorlist /mnt/etc/pacman.d/mirrorlist
 # TODO - Copy network settings if necessary
 
 # Pull and run system setup script
-read -p "${YELLOW}Remote setup script? (e.g.: https://raw.githubusercontent.com/jstolle/ArchLinuxInstaller/master/system-setup.sh): ${NC}" rsetup
+printf "${YELLOW}"
+read -p "Remote setup script? (e.g.: https://raw.githubusercontent.com/jstolle/ArchLinuxInstaller/master/system-setup.sh): " rsetup
+printf "${NC}"
 
 if [[ -n "${rsetup}" ]]; then
 	curl -o /mnt/root/system-setup.sh "${rsetup}"
@@ -71,7 +75,9 @@ else
 	arch-chroot /mnt
 fi
 
-read -p "${YELLOW}Ready to reboot? ${NC}" reboottime
+printf "${YELLOW}"
+read -p "Ready to reboot? " reboottime
+printf "${NC}"
 
 case $reboottime in
 	yes|y|yeah|sure|yep|yup|youbetcha)  printf "\n${GREEN}Rebooting...."
