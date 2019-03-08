@@ -22,7 +22,7 @@ this_locale=$(grep '^#[a-z]' /etc/locale.gen | sed 's/^#//' | fzf)
 this_lang=$(echo $this_locale | awk '{ print $1 }')
 printf "${NC}"
 
-sed -i "s\/^\#${this_locale}\/${this_locale}\/" /etc/locale.gen # uncomment the `en_US.UTF-8 UTF-8`
+sed -i "s/^#${this_locale}/${this_locale}/" /etc/locale.gen
 locale-gen
 
 echo "LANG=$this_lang" > /etc/locale.conf
@@ -33,7 +33,7 @@ read -p "Please specify the hostname for this system (e.g., arch-devbox): " this
 printf "${NC}"
 
 echo "$this_hostname" > /etc/hostname
-echo > /etc/hosts <<EOF
+cat > /etc/hosts <<EOF
 127.0.0.1	$this_hostname
 ::1       $this_hostname
 127.0.1.1	${this_hostname}.localdomain  $this_hostname
@@ -47,7 +47,7 @@ passwd
 
 # Install the boot loader and set the default image to boot to Arch (after 4 second delay)
 bootctl --path=/boot install
-echo > /boot/loader/loader.conf <<EOF
+cat > /boot/loader/loader.conf <<EOF
 default arch
 timeout 4
 EOF
@@ -55,7 +55,7 @@ EOF
 # Set up Arch boot entry
 root_vol_line=$(grep -n '/[^a-z]' /etc/fstab)
 rv_lineno=$(echo $root_vol_line | cut -d : -f 1)
-rv_fs=$(echo $root_vol_line | cut -f 3)
+rv_fs=$(echo $root_vol_line | cut -d ' ' -f 3)
 rv_dev=$(sed -n "s/# \(\/..*\)/\1/p;${rv_lineno}q" /etc/fstab)
 rv_partuuid=$(blkid $rv_dev | sed 's/..*PARTUUID="\(..*\)"$/\1/')
 sed -e "s/XXXX/${rv_partuuid}/" -e "s/XXXX/${rv_fs}/" -e 's/$/ rw/' /usr/share/systemd/bootctl/arch.conf > /boot/loader/entries/arch.conf
