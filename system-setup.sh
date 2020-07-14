@@ -40,7 +40,7 @@ cat > /etc/hosts <<EOF
 EOF
 
 # Create the linux boot image
-mkinitcpio -p linux
+mkinitcpio -P
 
 # Set the root password
 passwd
